@@ -15,6 +15,10 @@ def main():
     data[['Arrival Datetime']] = data[['Arrival Datetime']].fillna(REPORT_START_DATE.strftime('%Y%m%dT%H:%M:%S'))
     data[['Departure Datetime']] = data[['Departure Datetime']].fillna(REPORT_END_DATE.strftime('%Y%m%dT%H:%M:%S'))
 
+    sorted_data = data.sort_values('Arrival Datetime')
+
+    grouped_data = sorted_data.groupby('Bike ID')
+    
 
 if __name__ == '__main__':
     main()
