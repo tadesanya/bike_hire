@@ -1,8 +1,15 @@
-from datetime import datetime
 import pandas
+import numpy as np
 
-REPORT_START_DATE = datetime(2015, 3, 1, 00, 00, 00)
-REPORT_END_DATE = datetime(2015, 3, 31, 23, 59, 59)
+REPORT_START_DATE = pandas.to_datetime('20150301T00:00:00', format='%Y%m%dT%H:%M:%S')
+REPORT_END_DATE = pandas.to_datetime('20150331T23:59:59', format='%Y%m%dT%H:%M:%S')
+
+
+def time_formatter(seconds):
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    return '{:02}:{:02}:{:02}'.format(int(hours), int(minutes), int(seconds))
 
 
 def main():
@@ -11,14 +18,57 @@ def main():
                            names=['Station ID', 'Bike ID', 'Arrival Datetime', 'Departure Datetime'])
 
     # Fill empty values for Arrival Datetime and Departure Datetime with REPORT_START_DATE and REPORT_END_DATE
-    # respectively.
+    # respectively. Without this when sorting, rows with NaN are erroneously taken to the bottom of the
+    # sorting other.
     data[['Arrival Datetime']] = data[['Arrival Datetime']].fillna(REPORT_START_DATE.strftime('%Y%m%dT%H:%M:%S'))
     data[['Departure Datetime']] = data[['Departure Datetime']].fillna(REPORT_END_DATE.strftime('%Y%m%dT%H:%M:%S'))
 
     sorted_data = data.sort_values('Arrival Datetime')
-
     grouped_data = sorted_data.groupby('Bike ID')
-    
+
+    total_journey_durations = []
+    date_parser = lambda x: pandas.to_datetime(x, format='%Y%m%dT%H:%M:%S')
+
+    for name_of_the_group, group in grouped_data:
+        group = group.reset_index(drop=True)
+        bike_journey_duration = []
+        group_length = len(group)
+        first_row = None
+        last_row = None
+
+        for row_index, row in group.iterrows():
+            if row_index == 0:
+                first_row = row
+                continue
+            else:
+                if row_index == group_length - 1:
+                    last_row = row
+                
+                duration = date_parser(row['Arrival Datetime']) - date_parser(group.iloc[row_index - 1, 3])
+                bike_journey_duration.append(duration.total_seconds())
+
+        # Get the duration of the bike's current journey that is still ongoing
+        # reporting period till it arrived at the first station.
+        if date_parser(first_row['Arrival Datetime']) != REPORT_START_DATE:
+            first_journey_duration = date_parser(row['Arrival Datetime']) - REPORT_START_DATE
+            bike_journey_duration.insert(0, first_journey_duration.total_seconds())
+
+        # Get duration of bike journey by getting the time difference between departure time from
+        # as at the end of the reporting period.
+        if date_parser(last_row['Departure Datetime']) != REPORT_END_DATE:
+            last_journey_duration = REPORT_END_DATE - date_parser(row['Departure Datetime'])
+            bike_journey_duration.append(last_journey_duration.total_seconds())
+
+        # Calculate the mean journey of bike for the reporting period
+        mean_bike_journey = np.mean(bike_journey_duration)
+        print(bike_journey_duration)
+        print('Mean journey for Bike {}: {}'.format(name_of_the_group, time_formatter(mean_bike_journey)))
+        total_journey_durations.append(mean_bike_journey)
+
+    overall_mean_journey = np.mean(total_journey_durations)
+    print('\nTotal Journeys:', total_journey_durations)
+    return print('\nOverall mean journey of all bikes: {}'.format(time_formatter(overall_mean_journey)))
+
 
 if __name__ == '__main__':
     main()
