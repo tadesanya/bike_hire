@@ -14,6 +14,11 @@ COLUMN_NAMES = {
 
 
 def time_formatter(seconds):
+    """
+    Converts seconds into hours:minutes:seconds representation.
+    :param seconds: float
+    :return: str
+    """
     hours, remainder = divmod(seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
 
@@ -21,6 +26,11 @@ def time_formatter(seconds):
 
 
 def calculate_mean_journey(grouped_data):
+    """
+    Calculates the mean journey duration of bikes in the report data
+    :param grouped_data: DataFrameGroupBy Object
+    :return: str
+    """
     all_mean_journey_durations = []
     date_parser = lambda x: pandas.to_datetime(x, format='%Y%m%dT%H:%M:%S')
 
