@@ -5,6 +5,13 @@ import numpy as np
 REPORT_START_DATE = pandas.to_datetime('20150301T00:00:00', format='%Y%m%dT%H:%M:%S')
 REPORT_END_DATE = pandas.to_datetime('20150331T23:59:59', format='%Y%m%dT%H:%M:%S')
 
+COLUMN_NAMES = {
+    'stationId': 'Station ID',
+    'bikeId': 'Bike ID',
+    'arrivalDatetime': 'Arrival Datetime',
+    'departureDatetime': 'Departure Datetime',
+}
+
 
 def time_formatter(seconds):
     hours, remainder = divmod(seconds, 3600)
@@ -32,24 +39,24 @@ def calculate_mean_journey(grouped_data):
                 if row_index == group_length - 1:
                     last_row = row
 
-                duration = date_parser(row['Arrival Datetime']) - date_parser(group.iloc[row_index - 1, 3])
+                duration = date_parser(row[COLUMN_NAMES['arrivalDatetime']]) - date_parser(group.iloc[row_index - 1, 3])
                 bike_journey_duration.append(duration.total_seconds())
 
         # Get the duration of the bike's current journey that is still ongoing
         # reporting period till it arrived at the first station.
-        if date_parser(first_row['Arrival Datetime']) != REPORT_START_DATE:
-            first_journey_duration = date_parser(row['Arrival Datetime']) - REPORT_START_DATE
+        if date_parser(first_row[COLUMN_NAMES['arrivalDatetime']]) != REPORT_START_DATE:
+            first_journey_duration = date_parser(row[COLUMN_NAMES['arrivalDatetime']]) - REPORT_START_DATE
             bike_journey_duration.insert(0, first_journey_duration.total_seconds())
 
         # Get duration of bike journey by getting the time difference between departure time from
         # as at the end of the reporting period.
-        if date_parser(last_row['Departure Datetime']) != REPORT_END_DATE:
-            last_journey_duration = REPORT_END_DATE - date_parser(row['Departure Datetime'])
+        if date_parser(last_row[COLUMN_NAMES['departureDatetime']]) != REPORT_END_DATE:
+            last_journey_duration = REPORT_END_DATE - date_parser(row[COLUMN_NAMES['departureDatetime']])
             bike_journey_duration.append(last_journey_duration.total_seconds())
 
         # Calculate the mean journey of bike for the reporting period
         mean_bike_journey = np.mean(bike_journey_duration)
-        print('Journeys of bike {} during reporting period (in seconds) {}'.format(name_of_the_group, bike_journey_duration))
+        print('Bike {} journey during reporting period (in seconds) {}'.format(name_of_the_group, bike_journey_duration))
         print('Mean journey for Bike {}: {}\n'.format(name_of_the_group, time_formatter(mean_bike_journey)))
         all_mean_journey_durations.append(mean_bike_journey)
 
@@ -61,15 +68,18 @@ def calculate_mean_journey(grouped_data):
 def main():
     data = pandas.read_csv('data.csv',
                            delimiter=',',
-                           names=['Station ID', 'Bike ID', 'Arrival Datetime', 'Departure Datetime'])
+                           names=[COLUMN_NAMES['stationId'],
+                                  COLUMN_NAMES['bikeId'],
+                                  COLUMN_NAMES['arrivalDatetime'],
+                                  COLUMN_NAMES['departureDatetime']])
 
     # Fill empty values for Arrival Datetime and Departure Datetime with REPORT_START_DATE and REPORT_END_DATE
     # respectively. Without this when sorting, rows with NaN are erroneously taken to the bottom of the
     # sorting other.
-    data[['Arrival Datetime']] = data[['Arrival Datetime']].fillna(REPORT_START_DATE.strftime('%Y%m%dT%H:%M:%S'))
-    data[['Departure Datetime']] = data[['Departure Datetime']].fillna(REPORT_END_DATE.strftime('%Y%m%dT%H:%M:%S'))
+    data[[COLUMN_NAMES['arrivalDatetime']]] = data[[COLUMN_NAMES['arrivalDatetime']]].fillna(REPORT_START_DATE.strftime('%Y%m%dT%H:%M:%S'))
+    data[[COLUMN_NAMES['departureDatetime']]] = data[[COLUMN_NAMES['departureDatetime']]].fillna(REPORT_END_DATE.strftime('%Y%m%dT%H:%M:%S'))
 
-    sorted_data = data.sort_values('Arrival Datetime')
+    sorted_data = data.sort_values(COLUMN_NAMES['arrivalDatetime'])
     grouped_data = sorted_data.groupby('Bike ID')
 
     mean_journey = calculate_mean_journey(grouped_data)
