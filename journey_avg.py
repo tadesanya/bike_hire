@@ -1,6 +1,7 @@
 import pandas
 import numpy as np
 
+# These assume the report start and end date are 20150301T00:00:00 and 20150331T23:59:59 respectively
 REPORT_START_DATE = pandas.to_datetime('20150301T00:00:00', format='%Y%m%dT%H:%M:%S')
 REPORT_END_DATE = pandas.to_datetime('20150331T23:59:59', format='%Y%m%dT%H:%M:%S')
 
@@ -12,21 +13,8 @@ def time_formatter(seconds):
     return '{:02}:{:02}:{:02}'.format(int(hours), int(minutes), int(seconds))
 
 
-def main():
-    data = pandas.read_csv('data.csv',
-                           delimiter=',',
-                           names=['Station ID', 'Bike ID', 'Arrival Datetime', 'Departure Datetime'])
-
-    # Fill empty values for Arrival Datetime and Departure Datetime with REPORT_START_DATE and REPORT_END_DATE
-    # respectively. Without this when sorting, rows with NaN are erroneously taken to the bottom of the
-    # sorting other.
-    data[['Arrival Datetime']] = data[['Arrival Datetime']].fillna(REPORT_START_DATE.strftime('%Y%m%dT%H:%M:%S'))
-    data[['Departure Datetime']] = data[['Departure Datetime']].fillna(REPORT_END_DATE.strftime('%Y%m%dT%H:%M:%S'))
-
-    sorted_data = data.sort_values('Arrival Datetime')
-    grouped_data = sorted_data.groupby('Bike ID')
-
-    total_journey_durations = []
+def calculate_mean_journey(grouped_data):
+    all_mean_journey_durations = []
     date_parser = lambda x: pandas.to_datetime(x, format='%Y%m%dT%H:%M:%S')
 
     for name_of_the_group, group in grouped_data:
@@ -43,7 +31,7 @@ def main():
             else:
                 if row_index == group_length - 1:
                     last_row = row
-                
+
                 duration = date_parser(row['Arrival Datetime']) - date_parser(group.iloc[row_index - 1, 3])
                 bike_journey_duration.append(duration.total_seconds())
 
@@ -61,13 +49,31 @@ def main():
 
         # Calculate the mean journey of bike for the reporting period
         mean_bike_journey = np.mean(bike_journey_duration)
-        print(bike_journey_duration)
-        print('Mean journey for Bike {}: {}'.format(name_of_the_group, time_formatter(mean_bike_journey)))
-        total_journey_durations.append(mean_bike_journey)
+        print('Journeys of bike {} during reporting period (in seconds) {}'.format(name_of_the_group, bike_journey_duration))
+        print('Mean journey for Bike {}: {}\n'.format(name_of_the_group, time_formatter(mean_bike_journey)))
+        all_mean_journey_durations.append(mean_bike_journey)
 
-    overall_mean_journey = np.mean(total_journey_durations)
-    print('\nTotal Journeys:', total_journey_durations)
-    return print('\nOverall mean journey of all bikes: {}'.format(time_formatter(overall_mean_journey)))
+    overall_mean_journey = np.mean(all_mean_journey_durations)
+    print('\nTotal Journeys:', all_mean_journey_durations)
+    return time_formatter(overall_mean_journey)
+
+
+def main():
+    data = pandas.read_csv('data.csv',
+                           delimiter=',',
+                           names=['Station ID', 'Bike ID', 'Arrival Datetime', 'Departure Datetime'])
+
+    # Fill empty values for Arrival Datetime and Departure Datetime with REPORT_START_DATE and REPORT_END_DATE
+    # respectively. Without this when sorting, rows with NaN are erroneously taken to the bottom of the
+    # sorting other.
+    data[['Arrival Datetime']] = data[['Arrival Datetime']].fillna(REPORT_START_DATE.strftime('%Y%m%dT%H:%M:%S'))
+    data[['Departure Datetime']] = data[['Departure Datetime']].fillna(REPORT_END_DATE.strftime('%Y%m%dT%H:%M:%S'))
+
+    sorted_data = data.sort_values('Arrival Datetime')
+    grouped_data = sorted_data.groupby('Bike ID')
+
+    mean_journey = calculate_mean_journey(grouped_data)
+    print('\nOverall mean journey of all bikes: {}'.format(mean_journey))
 
 
 if __name__ == '__main__':
