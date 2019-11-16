@@ -74,8 +74,7 @@ def main():
                                   COLUMN_NAMES['departureDatetime']])
 
     # Fill empty values for Arrival Datetime and Departure Datetime with REPORT_START_DATE and REPORT_END_DATE
-    # respectively. Without this when sorting, rows with NaN are erroneously taken to the bottom of the
-    # sorting other.
+    # respectively. Without this when sorting, rows with NaN are erroneously taken to the bottom of the sorting order.
     data[[COLUMN_NAMES['arrivalDatetime']]] = data[[COLUMN_NAMES['arrivalDatetime']]].fillna(REPORT_START_DATE.strftime('%Y%m%dT%H:%M:%S'))
     data[[COLUMN_NAMES['departureDatetime']]] = data[[COLUMN_NAMES['departureDatetime']]].fillna(REPORT_END_DATE.strftime('%Y%m%dT%H:%M:%S'))
 
