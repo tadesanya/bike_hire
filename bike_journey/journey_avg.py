@@ -80,7 +80,7 @@ def main():
     data[[COLUMN_NAMES['departureDatetime']]] = data[[COLUMN_NAMES['departureDatetime']]].fillna(REPORT_END_DATE.strftime('%Y%m%dT%H:%M:%S'))
 
     sorted_data = data.sort_values(COLUMN_NAMES['arrivalDatetime'])
-    grouped_data = sorted_data.groupby('Bike ID')
+    grouped_data = sorted_data.groupby(COLUMN_NAMES['bikeId'])
 
     mean_journey = calculate_mean_journey(grouped_data)
     print('\nOverall mean journey of all bikes: {}'.format(mean_journey))
